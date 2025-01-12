@@ -16,12 +16,16 @@ pipeline {
             }
             steps {
                 script {
-                    sh """
+                    sh '''
                     mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
-                    curl -X POST -H "X-Api-Key: $DEPENDENCY_TRACK_API_KEY" \
-                         -F "bom=@target/bom.xml" \
-                         $DEPENDENCY_TRACK_URL
-                    """
+                    if [ -f target/bom.xml ]; then
+                        curl -X POST -H "X-Api-Key: $DEPENDENCY_TRACK_API_KEY" \
+                             -F "bom=@target/bom.xml" \
+                             $DEPENDENCY_TRACK_URL
+                    else
+                        echo "SBOM not found. Skipping upload to Dependency Track."
+                    fi
+                    '''
                 }
             }
         }
@@ -39,9 +43,9 @@ pipeline {
                         semgrep --config p/ci --metrics=off --json --output semgrep-results.json
                         if [ -s semgrep-results.json ]; then
                             curl -X POST -H "Authorization: Token $DD_API_KEY" \
-                                -H "Content-Type: application/json" \
-                                -d @semgrep-results.json \
-                                $DEFECTDOJO_URL
+                                 -H "Content-Type: application/json" \
+                                 -d @semgrep-results.json \
+                                 $DEFECTDOJO_URL
                         else
                             echo "Semgrep results are empty. Skipping upload to DefectDojo."
                         fi
@@ -60,13 +64,17 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
                     script {
-                        sh """
+                        sh '''
                         nuclei -u http://localhost:3000 -json -o nuclei-results.json
-                        curl -X POST -H "Authorization: Token $DD_API_KEY" \
-                             -H "Content-Type: application/json" \
-                             -d @nuclei-results.json \
-                             $DEFECTDOJO_URL
-                        """
+                        if [ -s nuclei-results.json ]; then
+                            curl -X POST -H "Authorization: Token $DD_API_KEY" \
+                                 -H "Content-Type: application/json" \
+                                 -d @nuclei-results.json \
+                                 $DEFECTDOJO_URL
+                        else
+                            echo "Nuclei results are empty. Skipping upload to DefectDojo."
+                        fi
+                        '''
                     }
                 }
             }
@@ -81,13 +89,17 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
                     script {
-                        sh """
+                        sh '''
                         trivy image --format json -o trivy-results.json bkimminich/juice-shop
-                        curl -X POST -H "Authorization: Token $DD_API_KEY" \
-                             -H "Content-Type: application/json" \
-                             -d @trivy-results.json \
-                             $DEFECTDOJO_URL
-                        """
+                        if [ -s trivy-results.json ]; then
+                            curl -X POST -H "Authorization: Token $DD_API_KEY" \
+                                 -H "Content-Type: application/json" \
+                                 -d @trivy-results.json \
+                                 $DEFECTDOJO_URL
+                        else
+                            echo "Trivy results are empty. Skipping upload to DefectDojo."
+                        fi
+                        '''
                     }
                 }
             }
@@ -102,13 +114,17 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
                     script {
-                        sh """
+                        sh '''
                         gitleaks detect --source . --report-format json --report-path gitleaks-results.json
-                        curl -X POST -H "Authorization: Token $DD_API_KEY" \
-                             -H "Content-Type: application/json" \
-                             -d @gitleaks-results.json \
-                             $DEFECTDOJO_URL
-                        """
+                        if [ -s gitleaks-results.json ]; then
+                            curl -X POST -H "Authorization: Token $DD_API_KEY" \
+                                 -H "Content-Type: application/json" \
+                                 -d @gitleaks-results.json \
+                                 $DEFECTDOJO_URL
+                        else
+                            echo "Gitleaks results are empty. Skipping upload to DefectDojo."
+                        fi
+                        '''
                     }
                 }
             }
