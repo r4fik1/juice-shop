@@ -47,27 +47,31 @@ pipeline {
         }
 
 stage('Run SAST - Semgrep') {
+    agent {
+        docker {
+            image 'returntocorp/semgrep:latest'
+        }
+    }
     steps {
-        script {
-            // Asegúrate de tener el entorno virtual activado antes de ejecutar Semgrep
-            sh '''
-            python3 -m venv /root/semgrep-venv
-            source /root/semgrep-venv/bin/activate
-            pip install semgrep
-            semgrep --config p/ci --metrics=off --json --output semgrep-results.json --debug
-            if [ -s semgrep-results.json ]; then
-                curl -X POST -H "Authorization: Token $DD_API_KEY" \
-                     -H "Content-Type: application/json" \
-                     -d @semgrep-results.json \
-                     $DEFECTDOJO_URL
-            else
-                echo "Semgrep results are empty. Skipping upload to DefectDojo."
-            fi
-            deactivate
-            '''
+        withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
+            script {
+                sh '''
+                docker pull returntocorp/semgrep
+                docker run \
+                -e SEMGREP_APP_TOKEN=$SEMGREP_APP_TOKEN \
+                -e SEMGREP_REPO_URL=$SEMGREP_REPO_URL \
+                -e SEMGREP_BRANCH=$SEMGREP_BRANCH \
+                -e SEMGREP_REPO_NAME=$SEMGREP_REPO_NAME \
+                -e SEMGREP_COMMIT=$SEMGREP_COMMIT \
+                -e SEMGREP_PR_ID=$SEMGREP_PR_ID \
+                -v "$(pwd):$(pwd)" --workdir $(pwd) \
+                returntocorp/semgrep semgrep ci
+                '''
+            }
         }
     }
 }
+
 
 
         stage('Run Container Security - Trivy') {
