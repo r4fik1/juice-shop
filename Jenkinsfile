@@ -35,13 +35,13 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
                     script {
-                        sh """
+                        sh '''
                         semgrep --config auto --json --output semgrep-results.json
                         curl -X POST -H "Authorization: Token $DD_API_KEY" \
-                             -H "Content-Type: application/json" \
-                             -d @semgrep-results.json \
-                             $DEFECTDOJO_URL
-                        """
+                            -H "Content-Type: application/json" \
+                            -d @semgrep-results.json \
+                            $DEFECTDOJO_URL
+                        '''
                     }
                 }
             }
