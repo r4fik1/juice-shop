@@ -1,27 +1,12 @@
 pipeline {
     agent any
     environment {
-        // URLs de integración y credenciales
+        // Variables de entorno para integrar con DefectDojo y otras herramientas
         DEPENDENCY_TRACK_URL = 'http://172.17.0.2:8080/api/v1/bom'
         DEPENDENCY_TRACK_API_KEY = credentials('DEPENDENCY_TRACK_API_KEY')
         DEFECTDOJO_URL = 'http://localhost:8080/api/v2/import-scan/'
         DEFECTDOJO_API_KEY = credentials('DEFECTDOJO_API_KEY')
-        // The following variable is required for a Semgrep AppSec Platform-connected scan:
         SEMGREP_APP_TOKEN = credentials('SEMGREP_APP_TOKEN')
-
-        // Uncomment to scan changed files in PRs or MRs (diff-aware scanning):
-        // SEMGREP_BASELINE_REF = "main"
-
-        // Troubleshooting:
-
-        // Uncomment the following lines if Semgrep AppSec Platform > Findings Page does not create links
-        // to the code that generated a finding or if you are not receiving PR or MR comments.
-        // SEMGREP_JOB_URL = "${BUILD_URL}"
-        // SEMGREP_COMMIT = "${GIT_COMMIT}"
-        // SEMGREP_BRANCH = "${GIT_BRANCH}"
-        // SEMGREP_REPO_NAME = env.GIT_URL.replaceFirst(/^https:\/\/github.com\/(.*).git$/, '$1')
-        // SEMGREP_REPO_URL = env.GIT_URL.replaceFirst(/^(.*).git$/,'$1')
-        // SEMGREP_PR_ID = "${env.CHANGE_ID}"
     }
     stages {
         stage('Run Dependency Track (SCA)') {
@@ -46,33 +31,31 @@ pipeline {
             }
         }
 
-stage('Run SAST - Semgrep') {
-    agent {
-        docker {
-            image 'returntocorp/semgrep:latest'
-        }
-    }
-    steps {
-        withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
-            script {
-                sh '''
-                docker pull returntocorp/semgrep
-                docker run \
-                -e SEMGREP_APP_TOKEN=$SEMGREP_APP_TOKEN \
-                -e SEMGREP_REPO_URL=$SEMGREP_REPO_URL \
-                -e SEMGREP_BRANCH=$SEMGREP_BRANCH \
-                -e SEMGREP_REPO_NAME=$SEMGREP_REPO_NAME \
-                -e SEMGREP_COMMIT=$SEMGREP_COMMIT \
-                -e SEMGREP_PR_ID=$SEMGREP_PR_ID \
-                -v "$(pwd):$(pwd)" --workdir $(pwd) \
-                returntocorp/semgrep semgrep ci
-                '''
+        stage('Run SAST - Semgrep') {
+            agent {
+                docker {
+                    image 'returntocorp/semgrep:latest'
+                }
+            }
+            steps {
+                withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
+                    script {
+                        sh '''
+                        docker pull returntocorp/semgrep && \
+                        docker run \
+                        -e SEMGREP_APP_TOKEN=$SEMGREP_APP_TOKEN \
+                        -e SEMGREP_REPO_URL=$SEMGREP_REPO_URL \
+                        -e SEMGREP_BRANCH=$SEMGREP_BRANCH \
+                        -e SEMGREP_REPO_NAME=$SEMGREP_REPO_NAME \
+                        -e SEMGREP_COMMIT=$SEMGREP_COMMIT \
+                        -e SEMGREP_PR_ID=$SEMGREP_PR_ID \
+                        -v "$(pwd):$(pwd)" --workdir $(pwd) \
+                        returntocorp/semgrep semgrep ci
+                        '''
+                    }
+                }
             }
         }
-    }
-}
-
-
 
         stage('Run Container Security - Trivy') {
             agent {
