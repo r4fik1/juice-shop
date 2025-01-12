@@ -18,13 +18,9 @@ pipeline {
                 script {
                     sh '''
                     mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
-                    if [ -f target/bom.xml ]; then
-                        curl -X POST -H "X-Api-Key: $DEPENDENCY_TRACK_API_KEY" \
-                             -F "bom=@target/bom.xml" \
-                             $DEPENDENCY_TRACK_URL
-                    else
-                        echo "SBOM not found. Skipping upload to Dependency Track."
-                    fi
+                    curl -X POST -H "X-Api-Key: $DEPENDENCY_TRACK_API_KEY" \
+                         -F "bom=@target/bom.xml" \
+                         $DEPENDENCY_TRACK_URL
                     '''
                 }
             }
@@ -40,17 +36,37 @@ pipeline {
                 withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
                     script {
                         sh '''
-                        # Ejecuta Semgrep y genera el archivo de resultados
-                        semgrep scan --validate --config="p/owasp-top-ten" --debug
-                        # Verifica si el archivo tiene contenido y realiza la subida a DefectDojo
-                        if [ -s semgrep-results.json ]; then
-                            curl -X POST -H "Authorization: Token $DD_API_KEY" \
-                                -H "Content-Type: application/json" \
-                                -d @semgrep-results.json \
-                                $DEFECTDOJO_URL
-                        else
-                            echo "Semgrep results are empty. Skipping upload to DefectDojo."
-                        fi
+                        docker pull returntocorp/semgrep && \
+                        docker run \
+                        -e SEMGREP_APP_TOKEN=$SEMGREP_APP_TOKEN \
+                        -e SEMGREP_REPO_URL=$SEMGREP_REPO_URL \
+                        -e SEMGREP_BRANCH=$SEMGREP_BRANCH \
+                        -e SEMGREP_REPO_NAME=$SEMGREP_REPO_NAME \
+                        -e SEMGREP_COMMIT=$SEMGREP_COMMIT \
+                        -e SEMGREP_PR_ID=$SEMGREP_PR_ID \
+                        -v "$(pwd):$(pwd)" --workdir $(pwd) \
+                        returntocorp/semgrep semgrep ci
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Run DAST - Nuclei') {
+            agent {
+                docker {
+                    image 'projectdiscovery/nuclei:latest'
+                }
+            }
+            steps {
+                withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
+                    script {
+                        sh '''
+                        nuclei -u http://localhost:3000 -json -o nuclei-results.json
+                        curl -X POST -H "Authorization: Token $DD_API_KEY" \
+                             -H "Content-Type: application/json" \
+                             -d @nuclei-results.json \
+                             $DEFECTDOJO_URL
                         '''
                     }
                 }
@@ -68,14 +84,10 @@ pipeline {
                     script {
                         sh '''
                         trivy image --format json -o trivy-results.json bkimminich/juice-shop
-                        if [ -s trivy-results.json ]; then
-                            curl -X POST -H "Authorization: Token $DD_API_KEY" \
-                                 -H "Content-Type: application/json" \
-                                 -d @trivy-results.json \
-                                 $DEFECTDOJO_URL
-                        else
-                            echo "Trivy results are empty. Skipping upload to DefectDojo."
-                        fi
+                        curl -X POST -H "Authorization: Token $DD_API_KEY" \
+                             -H "Content-Type: application/json" \
+                             -d @trivy-results.json \
+                             $DEFECTDOJO_URL
                         '''
                     }
                 }
@@ -93,14 +105,10 @@ pipeline {
                     script {
                         sh '''
                         gitleaks detect --source . --report-format json --report-path gitleaks-results.json
-                        if [ -s gitleaks-results.json ]; then
-                            curl -X POST -H "Authorization: Token $DD_API_KEY" \
-                                 -H "Content-Type: application/json" \
-                                 -d @gitleaks-results.json \
-                                 $DEFECTDOJO_URL
-                        else
-                            echo "Gitleaks results are empty. Skipping upload to DefectDojo."
-                        fi
+                        curl -X POST -H "Authorization: Token $DD_API_KEY" \
+                             -H "Content-Type: application/json" \
+                             -d @gitleaks-results.json \
+                             $DEFECTDOJO_URL
                         '''
                     }
                 }
