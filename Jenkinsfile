@@ -36,11 +36,15 @@ pipeline {
                 withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
                     script {
                         sh '''
-                        semgrep --config p/ci --json --output semgrep-results.json
-                        curl -X POST -H "Authorization: Token $DD_API_KEY" \
-                            -H "Content-Type: application/json" \
-                            -d @semgrep-results.json \
-                            $DEFECTDOJO_URL
+                        semgrep --config p/ci --metrics=off --json --output semgrep-results.json
+                        if [ -s semgrep-results.json ]; then
+                            curl -X POST -H "Authorization: Token $DD_API_KEY" \
+                                -H "Content-Type: application/json" \
+                                -d @semgrep-results.json \
+                                $DEFECTDOJO_URL
+                        else
+                            echo "Semgrep results are empty. Skipping upload to DefectDojo."
+                        fi
                         '''
                     }
                 }
