@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         // URLs de integración y credenciales
-        DEPENDENCY_TRACK_URL = 'http://dependencytrack:8080/api/v1/bom'
+        DEPENDENCY_TRACK_URL = 'http://172.17.0.2:8080/api/v1/bom'
         DEPENDENCY_TRACK_API_KEY = credentials('DEPENDENCY_TRACK_API_KEY')
         DEFECTDOJO_URL = 'http://localhost:8080/api/v2/import-scan/'
         DEFECTDOJO_API_KEY = credentials('DEFECTDOJO_API_KEY')
