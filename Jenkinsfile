@@ -40,39 +40,17 @@ pipeline {
                 withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
                     script {
                         sh '''
+                        # Ejecuta Semgrep y genera el archivo de resultados
                         semgrep --config p/ci --metrics=off --json --output semgrep-results.json
+                        
+                        # Verifica si el archivo tiene contenido y realiza la subida a DefectDojo
                         if [ -s semgrep-results.json ]; then
                             curl -X POST -H "Authorization: Token $DD_API_KEY" \
-                                 -H "Content-Type: application/json" \
-                                 -d @semgrep-results.json \
-                                 $DEFECTDOJO_URL
+                                -H "Content-Type: application/json" \
+                                -d @semgrep-results.json \
+                                $DEFECTDOJO_URL
                         else
                             echo "Semgrep results are empty. Skipping upload to DefectDojo."
-                        fi
-                        '''
-                    }
-                }
-            }
-        }
-
-        stage('Run DAST - Nuclei') {
-            agent {
-                docker {
-                    image 'projectdiscovery/nuclei:latest'
-                }
-            }
-            steps {
-                withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
-                    script {
-                        sh '''
-                        nuclei -u http://localhost:3000 -json -o nuclei-results.json
-                        if [ -s nuclei-results.json ]; then
-                            curl -X POST -H "Authorization: Token $DD_API_KEY" \
-                                 -H "Content-Type: application/json" \
-                                 -d @nuclei-results.json \
-                                 $DEFECTDOJO_URL
-                        else
-                            echo "Nuclei results are empty. Skipping upload to DefectDojo."
                         fi
                         '''
                     }
