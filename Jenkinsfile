@@ -11,7 +11,7 @@ pipeline {
                 script {
                     sh """
                     mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
-                    curl -X POST -H 'X-Api-Key: $DEPENDENCY_TRACK_API_KEY' \
+                    curl -X POST -H "X-Api-Key: $DEPENDENCY_TRACK_API_KEY" \
                          -F "bom=@target/bom.xml" \
                          $DEPENDENCY_TRACK_URL
                     """
