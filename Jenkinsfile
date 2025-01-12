@@ -17,10 +17,10 @@ pipeline {
             steps {
                 script {
                     sh """
-                    mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom || true
+                    mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
                     curl -X POST -H "X-Api-Key: $DEPENDENCY_TRACK_API_KEY" \
                          -F "bom=@target/bom.xml" \
-                         $DEPENDENCY_TRACK_URL || true
+                         $DEPENDENCY_TRACK_URL
                     """
                 }
             }
@@ -36,11 +36,11 @@ pipeline {
                 withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
                     script {
                         sh """
-                        semgrep --config auto --json --output semgrep-results.json || true
+                        semgrep --config auto --json --output semgrep-results.json
                         curl -X POST -H "Authorization: Token $DD_API_KEY" \
                              -H "Content-Type: application/json" \
                              -d @semgrep-results.json \
-                             $DEFECTDOJO_URL || true
+                             $DEFECTDOJO_URL
                         """
                     }
                 }
@@ -57,11 +57,11 @@ pipeline {
                 withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
                     script {
                         sh """
-                        nuclei -u http://localhost:3000 -json -o nuclei-results.json || true
+                        nuclei -u http://localhost:3000 -json -o nuclei-results.json
                         curl -X POST -H "Authorization: Token $DD_API_KEY" \
                              -H "Content-Type: application/json" \
                              -d @nuclei-results.json \
-                             $DEFECTDOJO_URL || true
+                             $DEFECTDOJO_URL
                         """
                     }
                 }
@@ -78,11 +78,11 @@ pipeline {
                 withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
                     script {
                         sh """
-                        trivy image --format json -o trivy-results.json bkimminich/juice-shop || true
+                        trivy image --format json -o trivy-results.json bkimminich/juice-shop
                         curl -X POST -H "Authorization: Token $DD_API_KEY" \
                              -H "Content-Type: application/json" \
                              -d @trivy-results.json \
-                             $DEFECTDOJO_URL || true
+                             $DEFECTDOJO_URL
                         """
                     }
                 }
@@ -99,11 +99,11 @@ pipeline {
                 withCredentials([string(credentialsId: 'DEFECTDOJO_API_KEY', variable: 'DD_API_KEY')]) {
                     script {
                         sh """
-                        gitleaks detect --source . --report-format json --report-path gitleaks-results.json || true
+                        gitleaks detect --source . --report-format json --report-path gitleaks-results.json
                         curl -X POST -H "Authorization: Token $DD_API_KEY" \
                              -H "Content-Type: application/json" \
                              -d @gitleaks-results.json \
-                             $DEFECTDOJO_URL || true
+                             $DEFECTDOJO_URL
                         """
                     }
                 }
