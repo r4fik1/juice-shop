@@ -41,7 +41,7 @@ pipeline {
                     script {
                         sh '''
                         # Ejecuta Semgrep y genera el archivo de resultados
-                        semgrep --config p/ci --metrics=off --json --output semgrep-results.json --debug
+                        semgrep --config p/javascript --metrics=off --json --output semgrep-results.json --debug
                         # Verifica si el archivo tiene contenido y realiza la subida a DefectDojo
                         if [ -s semgrep-results.json ]; then
                             curl -X POST -H "Authorization: Token $DD_API_KEY" \
