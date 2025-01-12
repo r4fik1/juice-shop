@@ -41,7 +41,7 @@ pipeline {
                     script {
                         sh '''
                         # Ejecuta Semgrep y genera el archivo de resultados
-                        semgrep --config=p/ci --json --output semgrep-results.json --debug
+                        semgrep scan --validate --config="p/owasp-top-ten" --debug
                         # Verifica si el archivo tiene contenido y realiza la subida a DefectDojo
                         if [ -s semgrep-results.json ]; then
                             curl -X POST -H "Authorization: Token $DD_API_KEY" \
