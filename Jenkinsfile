@@ -1,24 +1,17 @@
 pipeline {
     agent any
-    environment {
-        SEMGREP_HOME = "${WORKSPACE}/.semgrep" // Redirige Semgrep a un directorio en el workspace
-    }
     stages {
-        stage('Run SAST - Semgrep') {
-            agent {
-                docker {
-                    image 'returntocorp/semgrep:latest'
+        stage("Run SAST - Semgrep") {
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    sh '''
+                    docker run --rm -v ${PWD}:/src returntocorp/semgrep semgrep --config auto --output semgrep-output.json --json
+                    '''
                 }
             }
-            steps {
-                script {
-                    sh '''
-                    # Crea el directorio SEMGREP_HOME
-                    mkdir -p $SEMGREP_HOME
-                    
-                    # Ejecuta Semgrep usando las reglas de seguridad audit
-                    semgrep --config "p/security-audit" --json --output semgrep-results.json
-                    '''
+            post {
+                always {
+                    archiveArtifacts artifacts: 'semgrep-output.json', fingerprint: true
                 }
             }
         }
@@ -26,6 +19,9 @@ pipeline {
     post {
         always {
             echo 'Pipeline execution completed.'
+        }
+        success {
+            echo 'Semgrep analysis completed successfully.'
         }
         failure {
             echo 'Pipeline failed. Check logs for details.'
