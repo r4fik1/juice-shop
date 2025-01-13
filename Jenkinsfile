@@ -7,8 +7,7 @@ pipeline {
     stages {
         stage('Clonar el Repositorio') {
             steps {
-                // Ejecutar dentro de un nodo
-                node {
+                node('master') { // Cambiado a 'master'
                     sh """
                     git clone https://$GITHUB_TOKEN@github.com/r4fik1/juice-shop.git
                     """
@@ -17,8 +16,7 @@ pipeline {
         }
         stage('Ejecutar Semgrep') {
             steps {
-                node {
-                    // Ejecutar análisis con Semgrep
+                node('master') { // Cambiado a 'master'
                     sh """
                     cd juice-shop
                     semgrep --config p/owasp-top-ten --json --output $SEMGREP_OUTPUT .
@@ -28,8 +26,7 @@ pipeline {
         }
         stage('Publicar Resultados') {
             steps {
-                node {
-                    // Mostrar los resultados en consola
+                node('master') { // Cambiado a 'master'
                     sh "cat juice-shop/$SEMGREP_OUTPUT"
                 }
             }
@@ -37,8 +34,7 @@ pipeline {
     }
     post {
         always {
-            node {
-                // Archivar los resultados como artefactos
+            node('master') { // Cambiado a 'master'
                 archiveArtifacts artifacts: "juice-shop/$SEMGREP_OUTPUT", onlyIfSuccessful: true
             }
         }
