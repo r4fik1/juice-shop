@@ -1,9 +1,5 @@
 pipeline {
     agent any
-    environment {
-        // Variables de entorno necesarias
-        SEMGREP_APP_TOKEN = credentials('SEMGREP_APP_TOKEN')
-    }
     stages {
         stage('Run SAST - Semgrep') {
             agent {
