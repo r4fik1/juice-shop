@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    environment {
+        SEMGREP_HOME = "${env.WORKSPACE}/.semgrep" // Directorio seguro en el workspace
+    }
     stages {
         stage('Run SAST - Semgrep') {
             agent {
@@ -10,15 +13,8 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    # Ejecutar análisis de Semgrep con todas las reglas de seguridad disponibles
+                    mkdir -p $SEMGREP_HOME
                     semgrep --config "p/security-audit" --json --output semgrep-results.json
-
-                    # Mostrar los resultados en consola
-                    if [ -s semgrep-results.json ]; then
-                        echo "Semgrep analysis completed successfully. Results saved in semgrep-results.json."
-                    else
-                        echo "Semgrep did not find any issues."
-                    fi
                     '''
                 }
             }
