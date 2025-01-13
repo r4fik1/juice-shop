@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        SEMGREP_HOME = "/tmp/.semgrep"
+        SEMGREP_HOME = "${WORKSPACE}/.semgrep" // Redirige Semgrep a un directorio en el workspace
     }
     stages {
         stage('Run SAST - Semgrep') {
@@ -13,7 +13,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    # Crea el directorio especificado en SEMGREP_HOME
+                    # Crea el directorio SEMGREP_HOME
                     mkdir -p $SEMGREP_HOME
                     
                     # Ejecuta Semgrep usando las reglas de seguridad audit
