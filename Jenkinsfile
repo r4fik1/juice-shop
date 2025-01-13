@@ -1,37 +1,46 @@
 pipeline {
     agent any
     environment {
-        GITHUB_TOKEN = credentials('github-token') // ID de tu credencial
+        GITHUB_TOKEN = credentials('github-token') // ID de tu credencial de GitHub
+        SEMGREP_OUTPUT = "semgrep-results.json"
     }
     stages {
         stage('Clonar el Repositorio') {
             steps {
-                // Clonar el repositorio usando el token
-                sh """
-                git clone https://$GITHUB_TOKEN@github.com/r4fik1/juice-shop.git
-                """
+                // Ejecutar dentro de un nodo
+                node {
+                    sh """
+                    git clone https://$GITHUB_TOKEN@github.com/r4fik1/juice-shop.git
+                    """
+                }
             }
         }
         stage('Ejecutar Semgrep') {
             steps {
-                // Ejecutar análisis con Semgrep
-                sh """
-                cd juice-shop
-                semgrep --config p/owasp-top-ten --json --output semgrep-results.json .
-                """
+                node {
+                    // Ejecutar análisis con Semgrep
+                    sh """
+                    cd juice-shop
+                    semgrep --config p/owasp-top-ten --json --output $SEMGREP_OUTPUT .
+                    """
+                }
             }
         }
         stage('Publicar Resultados') {
             steps {
-                // Mostrar los resultados en la consola
-                sh "cat juice-shop/semgrep-results.json"
+                node {
+                    // Mostrar los resultados en consola
+                    sh "cat juice-shop/$SEMGREP_OUTPUT"
+                }
             }
         }
     }
     post {
         always {
-            // Archivar los resultados como artefacto
-            archiveArtifacts artifacts: 'juice-shop/semgrep-results.json', onlyIfSuccessful: true
+            node {
+                // Archivar los resultados como artefactos
+                archiveArtifacts artifacts: "juice-shop/$SEMGREP_OUTPUT", onlyIfSuccessful: true
+            }
         }
     }
 }
