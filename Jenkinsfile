@@ -1,8 +1,7 @@
 pipeline {
     agent any
     environment {
-        // Define un directorio accesible para Semgrep
-        SEMGREP_HOME = "${WORKSPACE}/.semgrep"
+        SEMGREP_HOME = "/tmp/.semgrep"
     }
     stages {
         stage('Run SAST - Semgrep') {
@@ -27,9 +26,6 @@ pipeline {
     post {
         always {
             echo 'Pipeline execution completed.'
-        }
-        success {
-            echo 'Semgrep analysis completed successfully.'
         }
         failure {
             echo 'Pipeline failed. Check logs for details.'
