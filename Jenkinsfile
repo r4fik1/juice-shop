@@ -1,42 +1,42 @@
 pipeline {
     agent any
     environment {
-        GITHUB_TOKEN = credentials('github-token') // ID de tu credencial de GitHub
-        SEMGREP_OUTPUT = "semgrep-results.json"
+        // Variables de entorno necesarias
+        SEMGREP_APP_TOKEN = credentials('SEMGREP_APP_TOKEN')
     }
     stages {
-        stage('Clonar el Repositorio') {
-            steps {
-                node('master') { // Cambiado a 'master'
-                    sh """
-                    git clone https://$GITHUB_TOKEN@github.com/r4fik1/juice-shop.git
-                    """
+        stage('Run SAST - Semgrep') {
+            agent {
+                docker {
+                    image 'returntocorp/semgrep:latest'
                 }
             }
-        }
-        stage('Ejecutar Semgrep') {
             steps {
-                node('master') { // Cambiado a 'master'
-                    sh """
-                    cd juice-shop
-                    semgrep --config p/owasp-top-ten --json --output $SEMGREP_OUTPUT .
-                    """
-                }
-            }
-        }
-        stage('Publicar Resultados') {
-            steps {
-                node('master') { // Cambiado a 'master'
-                    sh "cat juice-shop/$SEMGREP_OUTPUT"
+                script {
+                    sh '''
+                    # Ejecutar análisis de Semgrep con todas las reglas de seguridad disponibles
+                    semgrep --config "p/security-audit" --json --output semgrep-results.json
+
+                    # Mostrar los resultados en consola
+                    if [ -s semgrep-results.json ]; then
+                        echo "Semgrep analysis completed successfully. Results saved in semgrep-results.json."
+                    else
+                        echo "Semgrep did not find any issues."
+                    fi
+                    '''
                 }
             }
         }
     }
     post {
         always {
-            node('master') { // Cambiado a 'master'
-                archiveArtifacts artifacts: "juice-shop/$SEMGREP_OUTPUT", onlyIfSuccessful: true
-            }
+            echo 'Pipeline execution completed.'
+        }
+        success {
+            echo 'Semgrep analysis completed without errors.'
+        }
+        failure {
+            echo 'Pipeline failed. Check logs for details.'
         }
     }
 }
